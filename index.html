@@ -1,22 +1,390 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Will You Be My Valentine?</title>
-    <link rel="stylesheet" href="styles.css">
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Will you be my Valentine? 💘</title>
+  <style>
+    :root{
+      --bg1:#fff5f7;
+      --bg2:#f3f4ff;
+      --card:#ffffffcc;
+      --text:#1f2937;
+      --muted:#6b7280;
+      --yes:#16a34a;
+      --no:#ef4444;
+      --border:#e5e7eb;
+      --shadow: 0 20px 60px rgba(0,0,0,.10);
+      --radius: 22px;
+    }
+
+    *{ box-sizing:border-box; }
+    body{
+      margin:0;
+      min-height:100vh;
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji","Segoe UI Emoji";
+      color:var(--text);
+      background: radial-gradient(1200px 600px at 20% 20%, var(--bg2), transparent 60%),
+                  radial-gradient(1200px 600px at 80% 30%, var(--bg1), transparent 55%),
+                  linear-gradient(180deg, #fff, #fff);
+      overflow:hidden; /* helps with the dodgy NO button */
+    }
+
+    .wrap{
+      min-height:100vh;
+      display:grid;
+      place-items:center;
+      padding:28px 16px;
+      position:relative;
+    }
+
+    /* floating tiny hearts */
+    .float-heart{
+      position:absolute;
+      font-size:18px;
+      opacity:.18;
+      filter: blur(.2px);
+      animation: drift 10s linear infinite;
+      user-select:none;
+      pointer-events:none;
+    }
+    @keyframes drift{
+      from{ transform: translateY(30px); }
+      to{ transform: translateY(-120vh); }
+    }
+
+    .card{
+      width:min(720px, 95vw);
+      background:var(--card);
+      border:1px solid var(--border);
+      backdrop-filter: blur(10px);
+      border-radius:var(--radius);
+      box-shadow: var(--shadow);
+      padding: 26px 22px;
+      position:relative;
+    }
+
+    header{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:12px;
+      margin-bottom:14px;
+    }
+
+    .title{
+      display:flex;
+      align-items:center;
+      gap:10px;
+    }
+    .badge{
+      display:inline-grid;
+      place-items:center;
+      width:44px;height:44px;
+      border-radius:14px;
+      background: #ffe4e6;
+      border:1px solid #fecdd3;
+      font-size:22px;
+    }
+    h1{
+      font-size: clamp(20px, 3vw, 28px);
+      margin:0;
+      letter-spacing:-0.02em;
+    }
+    .subtitle{
+      margin:6px 0 0;
+      color:var(--muted);
+      font-size:14px;
+    }
+
+    .note{
+      margin:14px 0 18px;
+      padding:14px 14px;
+      border-radius:16px;
+      border:1px dashed #fda4af;
+      background:#fff;
+    }
+    .note h2{
+      font-size:15px;
+      margin:0 0 8px;
+    }
+    .note ul{
+      margin:0;
+      padding-left:18px;
+      color:#374151;
+      line-height:1.6;
+    }
+
+    .ask{
+      margin-top:14px;
+      padding:16px 14px;
+      border-radius:16px;
+      border:1px solid var(--border);
+      background:#fff;
+      position:relative;
+    }
+    .ask h2{
+      margin:0 0 10px;
+      font-size:18px;
+    }
+    .ask p{
+      margin:0 0 14px;
+      color:var(--muted);
+      font-size:14px;
+    }
+
+    .btnRow{
+      position:relative;
+      height:64px; /* room for the moving NO button */
+    }
+
+    button{
+      border:0;
+      padding:12px 16px;
+      border-radius:14px;
+      font-weight:700;
+      font-size:16px;
+      cursor:pointer;
+      transition: transform .08s ease, box-shadow .2s ease, opacity .2s ease;
+      box-shadow: 0 10px 25px rgba(0,0,0,.10);
+    }
+    button:active{ transform: scale(.98); }
+
+    #yesBtn{
+      background: linear-gradient(180deg, #22c55e, var(--yes));
+      color:#fff;
+    }
+
+    #noBtn{
+      background: linear-gradient(180deg, #fb7185, var(--no));
+      color:#fff;
+      position:absolute;
+      left:160px;
+      top:0;
+    }
+
+    .hint{
+      margin-top:10px;
+      font-size:12px;
+      color:var(--muted);
+    }
+
+    .result{
+      margin-top:16px;
+      padding:14px;
+      border-radius:16px;
+      border:1px solid #bbf7d0;
+      background:#f0fdf4;
+      display:none;
+    }
+    .result strong{ font-size:16px; }
+
+    /* Confetti canvas sits above everything */
+    canvas#confetti{
+      position:fixed;
+      inset:0;
+      pointer-events:none;
+      z-index:999;
+    }
+  </style>
 </head>
 <body>
-    <div class="container">
-        <h1>Will you be my Valentine?</h1>
-        <div class="buttons">
-            <button class="yes-button" onclick="handleYesClick()">Yes</button>
-            <button class="no-button" onclick="handleNoClick()">No</button>
+  <canvas id="confetti"></canvas>
+
+  <div class="wrap" id="wrap">
+    <!-- cute background hearts -->
+    <div class="float-heart" style="left:8%;  animation-duration:11s; top:80vh;">💗</div>
+    <div class="float-heart" style="left:18%; animation-duration:9s;  top:65vh;">💞</div>
+    <div class="float-heart" style="left:35%; animation-duration:12s; top:90vh;">💖</div>
+    <div class="float-heart" style="left:62%; animation-duration:10s; top:70vh;">💘</div>
+    <div class="float-heart" style="left:78%; animation-duration:13s; top:85vh;">💓</div>
+    <div class="float-heart" style="left:90%; animation-duration:9.5s; top:75vh;">💕</div>
+
+    <main class="card">
+      <header>
+        <div class="title">
+          <div class="badge">💌</div>
+          <div>
+            <h1>Hey you 🌸</h1>
+            <p class="subtitle">I made a tiny page for you.</p>
+          </div>
         </div>
-        <div class="gif_container">
-            <img src="https://media1.giphy.com/media/v1.Y2lkPTc5MGI3NjExbW5lenZyZHI5OXM2eW95b3pmMG40cWVrMDhtNjVuM3A4dGNxa2g2dSZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9cw/VM1fcpu2bKs1e2Kdbj/giphy.gif" alt="Cute GIF">
+        <div aria-hidden="true" style="font-size:22px; opacity:.75;">🧸</div>
+      </header>
+
+      <section class="note">
+        <h2>A few things I like about you</h2>
+        <!-- EDIT THESE BULLETS -->
+        <ul>
+          <li>Your smile is basically my favorite thing.</li>
+          <li>You make normal days feel special.</li>
+          <li>I feel safe being myself around you.</li>
+        </ul>
+      </section>
+
+      <section class="ask" id="askBox">
+        <h2>Will you be my Valentine? 💘</h2>
+        <p>(Choose wisely… the “No” button is a little shy 😅)</p>
+
+        <div class="btnRow" id="btnRow">
+          <button id="yesBtn">Yes 💚</button>
+          <button id="noBtn">No 🙈</button>
         </div>
-    </div>
-    <script src="script.js"></script>
+
+        <div class="hint" id="hint">
+          Tip: If you’re on mobile, try tapping “No”… if you can 😄
+        </div>
+
+        <div class="result" id="result">
+          <strong>YAY!! 🎉💖</strong>
+          <div style="margin-top:6px; color:#166534;">
+            You just made me very happy. Date idea: a cozy walk + something sweet? 🍰
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script>
+    // ---------- Dodgy NO button ----------
+    const wrap = document.getElementById('wrap');
+    const noBtn = document.getElementById('noBtn');
+    const yesBtn = document.getElementById('yesBtn');
+    const btnRow = document.getElementById('btnRow');
+    const result = document.getElementById('result');
+
+    // place NO somewhere reasonable at start
+    function clamp(v, min, max){ return Math.max(min, Math.min(max, v)); }
+
+    function moveNoButton() {
+      const rowRect = btnRow.getBoundingClientRect();
+      const btnRect = noBtn.getBoundingClientRect();
+
+      // keep it inside the button row
+      const maxX = rowRect.width - btnRect.width;
+      const maxY = rowRect.height - btnRect.height;
+
+      // random new position
+      const x = Math.random() * maxX;
+      const y = Math.random() * maxY;
+
+      noBtn.style.left = `${x}px`;
+      noBtn.style.top  = `${y}px`;
+    }
+
+    // Move away when cursor gets close (desktop)
+    function onMouseMove(e){
+      const btnRect = noBtn.getBoundingClientRect();
+      const cx = btnRect.left + btnRect.width/2;
+      const cy = btnRect.top  + btnRect.height/2;
+
+      const dx = e.clientX - cx;
+      const dy = e.clientY - cy;
+      const dist = Math.hypot(dx, dy);
+
+      if(dist < 120) moveNoButton();
+    }
+
+    // Also move on hover / touch attempts
+    noBtn.addEventListener('mouseenter', moveNoButton);
+    noBtn.addEventListener('pointerdown', (e) => {
+      // if she somehow clicks it, still dodge
+      e.preventDefault();
+      moveNoButton();
+    });
+
+    window.addEventListener('mousemove', onMouseMove);
+
+    // ---------- Confetti ----------
+    const canvas = document.getElementById('confetti');
+    const ctx = canvas.getContext('2d');
+
+    function resizeCanvas(){
+      canvas.width = window.innerWidth * devicePixelRatio;
+      canvas.height = window.innerHeight * devicePixelRatio;
+      canvas.style.width = window.innerWidth + 'px';
+      canvas.style.height = window.innerHeight + 'px';
+      ctx.setTransform(devicePixelRatio,0,0,devicePixelRatio,0,0);
+    }
+    window.addEventListener('resize', resizeCanvas);
+    resizeCanvas();
+
+    let confettiPieces = [];
+    let confettiRunning = false;
+
+    function startConfetti(durationMs = 3500){
+      confettiPieces = [];
+      const count = 180;
+
+      for(let i=0;i<count;i++){
+        confettiPieces.push({
+          x: Math.random() * window.innerWidth,
+          y: -20 - Math.random() * 200,
+          r: 4 + Math.random() * 5,
+          vx: -2 + Math.random() * 4,
+          vy: 2 + Math.random() * 4,
+          rot: Math.random() * Math.PI,
+          vr: -0.2 + Math.random() * 0.4,
+          shape: Math.random() < 0.7 ? 'rect' : 'circle',
+          // simple palette (soft)
+          c: ['#fb7185','#f472b6','#a78bfa','#60a5fa','#34d399','#fbbf24'][Math.floor(Math.random()*6)]
+        });
+      }
+
+      confettiRunning = true;
+      const start = performance.now();
+
+      function frame(t){
+        if(!confettiRunning) return;
+        const elapsed = t - start;
+
+        ctx.clearRect(0,0,window.innerWidth,window.innerHeight);
+
+        for(const p of confettiPieces){
+          p.x += p.vx;
+          p.y += p.vy;
+          p.rot += p.vr;
+          p.vy += 0.02; // gravity
+
+          ctx.save();
+          ctx.translate(p.x, p.y);
+          ctx.rotate(p.rot);
+          ctx.fillStyle = p.c;
+
+          if(p.shape === 'rect'){
+            ctx.fillRect(-p.r, -p.r, p.r*2, p.r*1.4);
+          }else{
+            ctx.beginPath();
+            ctx.arc(0,0,p.r*0.8,0,Math.PI*2);
+            ctx.fill();
+          }
+          ctx.restore();
+        }
+
+        // stop after duration or if most fell past screen
+        if(elapsed < durationMs){
+          requestAnimationFrame(frame);
+        } else {
+          confettiRunning = false;
+          ctx.clearRect(0,0,window.innerWidth,window.innerHeight);
+        }
+      }
+
+      requestAnimationFrame(frame);
+    }
+
+    // YES click behavior
+    yesBtn.addEventListener('click', () => {
+      result.style.display = 'block';
+      startConfetti();
+      // make NO stop being annoying after yes
+      window.removeEventListener('mousemove', onMouseMove);
+      noBtn.style.opacity = '0.35';
+      noBtn.style.cursor = 'default';
+    });
+
+    // initial nudge so NO isn't always in same spot
+    moveNoButton();
+  </script>
 </body>
 </html>
